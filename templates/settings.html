@@ -1,0 +1,214 @@
+{% extends "base.html" %}
+
+{% block title %}Настройки - ReMusic{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <h1 class="text-3xl font-bold mb-8">Настройки</h1>
+
+    <!-- Основная информация -->
+    <div class="bg-spotify-light/60 backdrop-blur-md rounded-xl p-6 mb-8">
+        <h2 class="text-xl font-semibold mb-4">Основная информация</h2>
+        <form id="profile-form" class="space-y-4">
+            <div>
+                <label class="block text-sm font-medium text-spotify-gray mb-2" for="name">Имя</label>
+                <input type="text" id="name" name="name" class="w-full px-4 py-2 rounded-lg bg-spotify-light border border-spotify-light/30 text-white placeholder-spotify-gray focus:outline-none focus:border-spotify-green transition-colors">
+                <div class="text-red-500 text-sm mt-2 hidden" id="name-error"></div>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-spotify-gray mb-2" for="email">Email</label>
+                <input type="email" id="email" name="email" class="w-full px-4 py-2 rounded-lg bg-spotify-light border border-spotify-light/30 text-white placeholder-spotify-gray focus:outline-none focus:border-spotify-green transition-colors">
+                <div class="text-red-500 text-sm mt-2 hidden" id="email-error"></div>
+            </div>
+            <button type="submit" class="px-6 py-2 rounded-full bg-spotify-green text-black font-medium hover:bg-spotify-green/90 transition-colors">
+                Сохранить изменения
+            </button>
+        </form>
+    </div>
+
+    <!-- Изменение пароля -->
+    <div class="bg-spotify-light/60 backdrop-blur-md rounded-xl p-6 mb-8">
+        <h2 class="text-xl font-semibold mb-4">Изменение пароля</h2>
+        <form id="password-form" class="space-y-4">
+            <div>
+                <label class="block text-sm font-medium text-spotify-gray mb-2" for="current-password">Текущий пароль</label>
+                <input type="password" id="current-password" name="current-password" class="w-full px-4 py-2 rounded-lg bg-spotify-light border border-spotify-light/30 text-white placeholder-spotify-gray focus:outline-none focus:border-spotify-green transition-colors">
+                <div class="text-red-500 text-sm mt-2 hidden" id="current-password-error"></div>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-spotify-gray mb-2" for="new-password">Новый пароль</label>
+                <input type="password" id="new-password" name="new-password" class="w-full px-4 py-2 rounded-lg bg-spotify-light border border-spotify-light/30 text-white placeholder-spotify-gray focus:outline-none focus:border-spotify-green transition-colors">
+                <div class="text-red-500 text-sm mt-2 hidden" id="new-password-error"></div>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-spotify-gray mb-2" for="confirm-password">Подтвердите новый пароль</label>
+                <input type="password" id="confirm-password" name="confirm-password" class="w-full px-4 py-2 rounded-lg bg-spotify-light border border-spotify-light/30 text-white placeholder-spotify-gray focus:outline-none focus:border-spotify-green transition-colors">
+                <div class="text-red-500 text-sm mt-2 hidden" id="confirm-password-error"></div>
+            </div>
+            <button type="submit" class="px-6 py-2 rounded-full bg-spotify-green text-black font-medium hover:bg-spotify-green/90 transition-colors">
+                Изменить пароль
+            </button>
+        </form>
+    </div>
+
+    <!-- Активные сессии -->
+    <div class="bg-spotify-light/60 backdrop-blur-md rounded-xl p-6">
+        <h2 class="text-xl font-semibold mb-4">Активные сессии</h2>
+        <div class="space-y-4" id="sessions-list">
+            <!-- Сессии будут добавлены через JavaScript -->
+        </div>
+    </div>
+</div>
+
+<div class="h-32"></div>
+
+<script>
+$(document).ready(function() {
+    // Загрузка данных профиля
+    loadProfile(function(response) {
+        $('#name').val(response.name);
+        $('#email').val(response.email);
+    });
+
+    // Загрузка активных сессий
+    loadSessions(function(response) {
+        const sessionsList = $('#sessions-list');
+        sessionsList.empty();
+
+        response.sessions.forEach(function(session) {
+            const isCurrentSession = session.access_token === getAccessToken();
+            const sessionElement = $(`
+                <div class="flex items-center justify-between p-4 rounded-lg bg-spotify-light/30 ${isCurrentSession ? 'border-2 border-spotify-green' : ''}">
+                    <div>
+                        <div class="font-medium">${session.user_agent || 'Неизвестное устройство'}</div>
+                        <div class="text-sm text-spotify-gray">
+                            IP: ${session.ip_address || 'Неизвестно'} • 
+                            Последняя активность: ${new Date(session.last_used_at).toLocaleString()}
+                        </div>
+                    </div>
+                    ${isCurrentSession ? 
+                        '<div class="text-spotify-green">Текущая сессия</div>' :
+                        `<button class="px-4 py-2 text-red-500 hover:text-red-400 transition-colors terminate-session" data-session-id="${session.id}">
+                            Завершить
+                        </button>`
+                    }
+                </div>
+            `);
+            sessionsList.append(sessionElement);
+        });
+
+        // Обработчик для кнопок завершения сессии
+        $('.terminate-session').on('click', function() {
+            const sessionId = $(this).data('session-id');
+            if (confirm('Вы уверены, что хотите завершить эту сессию?')) {
+                terminateSession(sessionId, function(response) {
+                    if (response.error) {
+                        alert(response.error);
+                    } else {
+                        // Перезагружаем список сессий
+                        loadSessions(function(response) {
+                            const sessionsList = $('#sessions-list');
+                            sessionsList.empty();
+
+                            response.sessions.forEach(function(session) {
+                                const isCurrentSession = session.access_token === getAccessToken();
+                                const sessionElement = $(`
+                                    <div class="flex items-center justify-between p-4 rounded-lg bg-spotify-light/30 ${isCurrentSession ? 'border-2 border-spotify-green' : ''}">
+                                        <div>
+                                            <div class="font-medium">${session.user_agent || 'Неизвестное устройство'}</div>
+                                            <div class="text-sm text-spotify-gray">
+                                                IP: ${session.ip_address || 'Неизвестно'} • 
+                                                Последняя активность: ${new Date(session.last_used_at).toLocaleString()}
+                                            </div>
+                                        </div>
+                                        ${isCurrentSession ? 
+                                            '<div class="text-spotify-green">Текущая сессия</div>' :
+                                            `<button class="px-4 py-2 text-red-500 hover:text-red-400 transition-colors terminate-session" data-session-id="${session.id}">
+                                                Завершить
+                                            </button>`
+                                        }
+                                    </div>
+                                `);
+                                sessionsList.append(sessionElement);
+                            });
+                        });
+                    }
+                });
+            }
+        });
+    });
+
+    // Обработка формы профиля
+    $('#profile-form').on('submit', function(e) {
+        e.preventDefault();
+        if (!checkAuth()) return;
+        
+        const data = {
+            name: $('#name').val(),
+            email: $('#email').val()
+        };
+
+        $.ajax({
+            url: '/api/user/profile',
+            method: 'PUT',
+            headers: getAuthHeaders(),
+            contentType: 'application/json',
+            data: JSON.stringify(data),
+            success: function(response) {
+                // Обновляем имя в меню пользователя
+                $('#user-name').text(response.name);
+                // Показываем уведомление об успехе
+                alert('Профиль успешно обновлен');
+            },
+            error: function(xhr) {
+                const response = xhr.responseJSON;
+                if (response.error) {
+                    $('#name-error').text(response.error).show();
+                }
+                handleAuthError(xhr);
+            }
+        });
+    });
+
+    // Обработка формы изменения пароля
+    $('#password-form').on('submit', function(e) {
+        e.preventDefault();
+        if (!checkAuth()) return;
+        
+        const newPassword = $('#new-password').val();
+        const confirmPassword = $('#confirm-password').val();
+
+        if (newPassword !== confirmPassword) {
+            $('#confirm-password-error').text('Пароли не совпадают').show();
+            return;
+        }
+
+        const data = {
+            current_password: $('#current-password').val(),
+            new_password: newPassword
+        };
+
+        $.ajax({
+            url: '/api/user/password',
+            method: 'PUT',
+            headers: getAuthHeaders(),
+            contentType: 'application/json',
+            data: JSON.stringify(data),
+            success: function() {
+                // Очищаем форму
+                $('#password-form')[0].reset();
+                // Показываем уведомление об успехе
+                alert('Пароль успешно изменен');
+            },
+            error: function(xhr) {
+                const response = xhr.responseJSON;
+                if (response.error) {
+                    $('#current-password-error').text(response.error).show();
+                }
+                handleAuthError(xhr);
+            }
+        });
+    });
+});
+</script>
+{% endblock %} 

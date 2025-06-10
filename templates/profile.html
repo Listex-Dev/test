@@ -1,0 +1,262 @@
+{% extends "base.html" %}
+
+{% block title %}Профиль - ReMusic{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mb-32 mx-auto pb-24">
+    <!-- Информация о пользователе -->
+    <div class="bg-spotify-light/60 backdrop-blur-md rounded-xl p-8 mb-8">
+        <div class="flex items-center space-x-6">
+            <div class="w-32 h-32 rounded-full bg-spotify-green flex items-center justify-center text-4xl font-bold text-black" id="user-avatar">
+                <!-- Аватар будет добавлен через JavaScript -->
+            </div>
+            <div>
+                <h1 class="text-3xl font-bold mb-2" id="u-name">
+                    <!-- Имя будет добавлено через JavaScript -->
+                </h1>
+                <p class="text-spotify-gray" id="user-email">
+                    <!-- Email будет добавлен через JavaScript -->
+                </p>
+                <div class="mt-4 flex space-x-4">
+                    <div class="text-center">
+                        <div class="text-2xl font-bold" id="playlists-count">0</div>
+                        <div class="text-spotify-gray">Плейлистов</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-2xl font-bold" id="artists-count">0</div>
+                        <div class="text-spotify-gray">Подписок</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-2xl font-bold" id="history-count">0</div>
+                        <div class="text-spotify-gray">Прослушано</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- История прослушивания -->
+    <div class="mb-8">
+        <div class="flex justify-between items-center mb-4">
+            <h2 class="text-2xl font-bold">История прослушивания</h2>
+            <button class="text-spotify-gray hover:text-white transition-colors hidden" id="show-all-history">
+                Показать все
+            </button>
+        </div>
+        <div class="bg-spotify-light/60 backdrop-blur-md rounded-xl p-6">
+            <div class="space-y-4" id="history-list">
+                <!-- История будет добавлена через JavaScript -->
+            </div>
+            <div id="empty-history" class="hidden text-center py-8">
+                <p class="text-spotify-gray mb-4">Ваша история прослушивания пока пуста</p>
+                <a href="/" class="text-spotify-green hover:text-white transition-colors">
+                    Начните слушать музыку прямо сейчас
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Плейлисты -->
+    <div class="mb-8">
+        <h2 class="text-2xl font-bold mb-4">Мои плейлисты</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6" id="playlists-grid">
+            <!-- Плейлисты будут добавлены через JavaScript -->
+        </div>
+        <div id="empty-playlists" class="hidden text-center py-8 bg-spotify-light/60 backdrop-blur-md rounded-xl">
+            <p class="text-spotify-gray mb-4">У вас пока нет плейлистов</p>
+            <button class="text-spotify-green hover:text-white transition-colors" onclick="createPlaylist()">
+                Создать первый плейлист
+            </button>
+        </div>
+    </div>
+
+    <!-- Подписки на исполнителей -->
+    <div class="mb-8">
+        <h2 class="text-2xl font-bold mb-4">Подписки на исполнителей</h2>
+        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-6" id="artists-grid">
+            <!-- Исполнители будут добавлены через JavaScript -->
+        </div>
+        <div id="empty-artists" class="hidden text-center py-8 bg-spotify-light/60 backdrop-blur-md rounded-xl">
+            <p class="text-spotify-gray mb-4">У вас пока нет подписок на исполнителей</p>
+            <a href="/search" class="text-spotify-green hover:text-white transition-colors">
+                Найти своих любимых исполнителей
+            </a>
+        </div>
+    </div>
+</div>
+
+<script>
+$(document).ready(function() {
+    // Загрузка данных профиля
+    loadProfile(function(response) {
+        $('#user-avatar').text(response.name[0].toUpperCase());
+        $('#u-name').text(response.name);
+        $('#user-email').text(response.email);
+    });
+
+    // Загрузка истории прослушивания
+    loadHistory(function(response) {
+        const historyList = $('#history-list');
+        const emptyHistory = $('#empty-history');
+        historyList.empty();
+        const $showAllButton = $('#show-all-history');
+
+        // Обновляем счетчик
+        $('#history-count').text(response.history.length);
+
+        if (response.history.length === 0) {
+            historyList.addClass('hidden');
+            emptyHistory.removeClass('hidden');
+            $showAllButton.addClass('hidden');
+            return;
+        }
+
+        historyList.removeClass('hidden');
+        emptyHistory.addClass('hidden');
+
+        // Показываем кнопку "Показать все" если треков больше 5
+        if (response.history.length > 5) {
+            $showAllButton.removeClass('hidden');
+        } else {
+            $showAllButton.addClass('hidden');
+        }
+
+        // Функция для добавления элемента истории
+        function addHistoryItem(item) {
+            const historyElement = $(`
+                <div class="flex items-center space-x-4 p-4 rounded-lg bg-spotify-light/30 hover:bg-spotify-light/50 transition-colors cursor-pointer group track-item" data-id="${item.track_id}">
+                    <img src="${item.thumbnail}" alt="${item.title}" class="w-16 h-16 rounded">
+                    <div class="flex-1">
+                        <div class="font-medium">${item.title}</div>
+                        <div class="text-sm text-spotify-gray">
+                            <a href="/artists/${item.artist_id}" class="hover:text-white transition-colors">
+                                ${item.artist}
+                            </a>
+                        </div>
+                    </div>
+                    <div class="flex items-center space-x-4">
+                        <div class="text-sm text-spotify-gray">
+                            ${new Date(item.played_at).toLocaleString()}
+                        </div>
+                        <button class="play-button hidden group-hover:block text-spotify-green hover:text-white transition-colors">
+                            <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M8 5v14l11-7z"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            `);
+
+            // Добавляем обработчик клика для воспроизведения трека
+            historyElement.on('click', function(e) {
+                if (!$(e.target).closest('.play-button').length) {
+                    playTrack(item.track_id);
+                }
+            });
+
+            // Обработчик для кнопки воспроизведения
+            historyElement.find('.play-button').on('click', function(e) {
+                e.stopPropagation();
+                playTrack(item.track_id);
+            });
+
+            historyList.append(historyElement);
+        }
+
+        // Добавляем первые 5 треков
+        response.history.slice(0, 5).forEach(addHistoryItem);
+
+        // Удаляем старый обработчик и добавляем новый
+        $showAllButton.off('click').on('click', function() {
+            const $button = $(this);
+            const $list = historyList;
+            
+            if ($button.text() === 'Показать все') {
+                // Добавляем оставшиеся треки
+                response.history.slice(5).forEach(addHistoryItem);
+                $button.text('Скрыть');
+            } else {
+                // Оставляем только первые 5 треков
+                $list.children().slice(5).remove();
+                $button.text('Показать все');
+            }
+        });
+    });
+
+    // Загрузка плейлистов
+    loadPlaylists(function(response) {
+        const playlistsGrid = $('#playlists-grid');
+        const emptyPlaylists = $('#empty-playlists');
+        playlistsGrid.empty();
+
+        // Обновляем счетчик
+        $('#playlists-count').text(response.playlists.length);
+
+        if (response.playlists.length === 0) {
+            playlistsGrid.addClass('hidden');
+            emptyPlaylists.removeClass('hidden');
+            return;
+        }
+
+        playlistsGrid.removeClass('hidden');
+        emptyPlaylists.addClass('hidden');
+
+        response.playlists.forEach(function(playlist) {
+            const playlistElement = $(`
+                <div class="bg-spotify-light/30 rounded-lg p-4 hover:bg-spotify-light/50 transition-colors">
+                    <img src="${playlist.thumbnail}" alt="${playlist.name}" class="w-full aspect-square rounded-lg mb-4">
+                    <div class="font-medium">${playlist.name}</div>
+                    <div class="text-sm text-spotify-gray">${playlist.tracks_count} треков</div>
+                </div>
+            `);
+            playlistsGrid.append(playlistElement);
+        });
+    });
+
+    // Загрузка подписок на исполнителей
+    loadFollowedArtists(function(response) {
+        const artistsGrid = $('#artists-grid');
+        const emptyArtists = $('#empty-artists');
+        artistsGrid.empty();
+
+        // Обновляем счетчик
+        $('#artists-count').text(response.artists.length);
+
+        if (response.artists.length === 0) {
+            artistsGrid.addClass('hidden');
+            emptyArtists.removeClass('hidden');
+            return;
+        }
+
+        artistsGrid.removeClass('hidden');
+        emptyArtists.addClass('hidden');
+        response.artists.forEach(function(artist) {
+            const artistElement = $(`
+                <a href="/artists/${artist.artist_id}" class="text-center group relative block">
+                    <div class="relative">
+                        <img src="${artist.image}" alt="${artist.name}" class="w-full aspect-square rounded-full mb-4 object-cover">
+                        <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
+                            <button class="play-button text-white hover:text-spotify-green transition-colors">
+                                <svg class="w-12 h-12" fill="currentColor" viewBox="0 0 24 24">
+                                    <path d="M8 5v14l11-7z"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="font-medium">${artist.name}</div>
+                    <div class="text-sm text-spotify-gray">${artist.followers_count} подписчиков</div>
+                </a>
+            `);
+            artistsGrid.append(artistElement);
+        });
+    });
+});
+
+// Функция для создания плейлиста
+function createPlaylist() {
+    // Здесь будет логика создания плейлиста
+    // Можно добавить модальное окно или перенаправить на страницу создания плейлиста
+    window.location.href = '/playlists/create';
+}
+</script>
+{% endblock %} 

@@ -1,0 +1,550 @@
+{% extends "base.html" %}
+
+{% block title %}Артист{% endblock %}
+
+{% block content %}
+<div class="space-y-8 pb-32" id="artist-content">
+    <!-- Загрузчик -->
+    <div class="flex items-center justify-center h-96">
+        <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-spotify-green"></div>
+    </div>
+</div>
+
+<!-- Шаблон контента артиста -->
+<template id="artist-template">
+    <div class="space-y-8">
+        <!-- Шапка артиста -->
+        <div class="relative h-96 rounded-xl overflow-hidden">
+            <!-- Фоновое изображение -->
+            <div class="absolute inset-0">
+                <img src="" alt="" class="w-full h-full object-cover blur-xl opacity-50">
+                <div class="absolute inset-0 bg-gradient-to-t from-spotify-black to-transparent"></div>
+            </div>
+            
+            <!-- Контент -->
+            <div class="relative h-full flex items-end p-8">
+                <div class="flex items-end gap-6">
+                    <!-- Аватар артиста -->
+                    <div class="w-48 h-48 rounded-lg overflow-hidden shadow-2xl">
+                        <img src="" alt="" class="w-full h-full object-cover">
+                    </div>
+                    
+                    <!-- Информация -->
+                    <div class="text-white">
+                        <h1 class="text-5xl font-bold mb-4"></h1>
+                        <p class="text-spotify-gray mb-2">
+                            <span class="tracks-count">0</span> треков • <span class="followers-count">0</span> подписчиков
+                        </p>
+                        <p class="text-spotify-gray text-sm max-w-2xl description"></p>
+                        <!-- Кнопка подписки -->
+                        <button id="follow-artist" class="mt-4 px-6 py-2 rounded-full bg-spotify-green text-black font-semibold hover:bg-spotify-green/80 transition-colors hidden">
+                            Подписаться
+                        </button>
+                        <button id="unfollow-artist" class="mt-4 px-6 py-2 rounded-full border border-spotify-gray text-white font-semibold hover:bg-spotify-light/20 transition-colors hidden">
+                            Отписаться
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Навигация по разделам -->
+        <div class="border-b border-spotify-light/30">
+            <nav class="flex gap-8 px-4">
+                <button class="nav-link active group" data-section="tracks">
+                    <span class="relative">
+                        Треки
+                        <span class="absolute -bottom-1 left-0 w-full h-0.5 bg-spotify-green transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300"></span>
+                    </span>
+                </button>
+                <button class="nav-link group" data-section="albums">
+                    <span class="relative">
+                        Альбомы
+                        <span class="absolute -bottom-1 left-0 w-full h-0.5 bg-spotify-green transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300"></span>
+                    </span>
+                </button>
+                <button class="nav-link group" data-section="singles">
+                    <span class="relative">
+                        Синглы
+                        <span class="absolute -bottom-1 left-0 w-full h-0.5 bg-spotify-green transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300"></span>
+                    </span>
+                </button>
+                <button class="nav-link group" data-section="videos">
+                    <span class="relative">
+                        Видео
+                        <span class="absolute -bottom-1 left-0 w-full h-0.5 bg-spotify-green transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300"></span>
+                    </span>
+                </button>
+                <button class="nav-link group" data-section="related">
+                    <span class="relative">
+                        Похожие артисты
+                        <span class="absolute -bottom-1 left-0 w-full h-0.5 bg-spotify-green transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300"></span>
+                    </span>
+                </button>
+            </nav>
+        </div>
+
+        <!-- Секции контента -->
+        <div class="space-y-8">
+            <!-- Треки -->
+            <div class="section active" id="tracks-section">
+                <div class="space-y-4">
+                    <div class="flex justify-between items-center">
+                        <h2 class="text-2xl font-bold">Популярные треки</h2>
+                        <button class="text-spotify-gray hover:text-white transition-colors hidden" id="show-all-tracks">
+                            Показать все
+                        </button>
+                    </div>
+                    <div class="space-y-2" id="tracks-list"></div>
+                </div>
+            </div>
+
+            <!-- Альбомы -->
+            <div class="section hidden" id="albums-section">
+                <div class="space-y-4">
+                    <h2 class="text-2xl font-bold">Альбомы</h2>
+                    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6" id="albums-grid"></div>
+                </div>
+            </div>
+
+            <!-- Синглы -->
+            <div class="section hidden" id="singles-section">
+                <div class="space-y-4">
+                    <h2 class="text-2xl font-bold">Синглы</h2>
+                    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6" id="singles-grid"></div>
+                </div>
+            </div>
+
+            <!-- Видео -->
+            <div class="section hidden" id="videos-section">
+                <div class="space-y-4">
+                    <h2 class="text-2xl font-bold">Видео</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="videos-grid"></div>
+                </div>
+            </div>
+
+            <!-- Похожие артисты -->
+            <div class="section hidden" id="related-section">
+                <div class="space-y-4">
+                    <h2 class="text-2xl font-bold">Похожие артисты</h2>
+                    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6" id="related-grid"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</template>
+
+<!-- Шаблоны для разных типов контента -->
+<template id="track-template">
+    <div class="flex items-center gap-4 p-2 hover:bg-spotify-light/50 rounded-lg cursor-pointer group track-item" data-id="" data-artist-id="">
+        <img src="" alt="" class="w-12 h-12 rounded">
+        <div class="flex-1">
+            <div class="font-semibold track-title"></div>
+            <div class="text-spotify-gray text-sm track-artist"></div>
+        </div>
+        <button class="text-spotify-gray hover:text-white opacity-0 group-hover:opacity-100 transition-opacity">
+            <i class="fas fa-play"></i>
+        </button>
+    </div>
+</template>
+
+<template id="album-template">
+    <div class="group cursor-pointer">
+        <div class="relative aspect-square rounded-lg overflow-hidden mb-4">
+            <img src="" alt="" class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105">
+            <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
+                <button class="w-12 h-12 rounded-full bg-spotify-green flex items-center justify-center transform scale-0 group-hover:scale-100 transition-transform duration-300">
+                    <i class="fas fa-play"></i>
+                </button>
+            </div>
+        </div>
+        <h3 class="font-semibold text-lg truncate"></h3>
+        <p class="text-spotify-gray text-sm"></p>
+    </div>
+</template>
+
+<template id="video-template">
+    <div class="group cursor-pointer">
+        <div class="relative aspect-video rounded-lg overflow-hidden mb-4">
+            <img src="" alt="" class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105">
+            <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
+                <button class="w-12 h-12 rounded-full bg-spotify-green flex items-center justify-center transform scale-0 group-hover:scale-100 transition-transform duration-300">
+                    <i class="fas fa-play"></i>
+                </button>
+            </div>
+        </div>
+        <h3 class="font-semibold text-lg truncate"></h3>
+        <p class="text-spotify-gray text-sm"></p>
+    </div>
+</template>
+
+<template id="related-artist-template">
+    <div class="group cursor-pointer" data-id="">
+        <div class="relative aspect-square rounded-full overflow-hidden mb-4">
+            <img src="" alt="" class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105">
+            <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
+                <button class="w-12 h-12 rounded-full bg-spotify-green flex items-center justify-center transform scale-0 group-hover:scale-100 transition-transform duration-300">
+                    <i class="fas fa-user"></i>
+                </button>
+            </div>
+        </div>
+        <h3 class="font-semibold text-lg truncate"></h3>
+        <p class="text-spotify-gray text-sm"></p>
+    </div>
+</template>
+
+    <!-- Контент будет добавлен через JavaScript -->
+</div>
+
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Загрузка информации об артисте
+    function loadArtist() {
+        const artistId = window.location.pathname.split('/').pop();
+        
+        $.get(`/api/artists/${artistId}`)
+            .done(function(artist) {
+                const template = document.getElementById('artist-template');
+                const $content = $(template.content.cloneNode(true));
+                
+                // Заполняем информацию об артисте
+                $content.find('h1').text(artist.name);
+                $content.find('.tracks-count').text(artist.tracks.length);
+                $content.find('.description').text(artist.description || '');
+                $content.find('img').attr({
+                    src: artist.image,
+                    alt: artist.name
+                });
+
+                // Получаем количество подписчиков
+                $.get('/api/user/followed-artists')
+                    .done(function(response) {
+                        const followersCount = response.artists.filter(a => a.artist_id === artistId)[0]?.followers_count || 0;
+                        $content.find('.followers-count').text(followersCount);
+                    });
+
+                // Проверяем подписку на артиста
+                checkArtistFollowStatus(artistId);
+                
+                // Добавляем треки
+                const tracksTemplate = document.getElementById('track-template');
+                const $tracksList = $content.find('#tracks-list');
+                const $showAllButton = $content.find('#show-all-tracks');
+                
+                // Показываем кнопку "Показать все" если треков больше 10
+                if (artist.tracks.length > 10) {
+                    $showAllButton.removeClass('hidden');
+                }
+                
+                // Добавляем первые 10 треков
+                artist.tracks.slice(0, 10).forEach(track => {
+                    const $track = $(tracksTemplate.content.cloneNode(true));
+                    
+                    $track.find('.track-item').attr({
+                        'data-id': track.id,
+                        'data-artist-id': artist.id
+                    });
+                    $track.find('img').attr({
+                        src: track.thumbnail,
+                        alt: track.title
+                    });
+                    $track.find('.track-title').text(track.title);
+                    $track.find('.track-artist').text(track.duration);
+                    
+                    $tracksList.append($track);
+                });
+
+                // Обработчик для кнопки "Показать все"
+                $showAllButton.on('click', function() {
+                    const $button = $(this);
+                    const $list = $tracksList;
+                    
+                    if ($button.text() === 'Показать все') {
+                        // Добавляем оставшиеся треки
+                        artist.tracks.slice(10).forEach(track => {
+                            const $track = $(tracksTemplate.content.cloneNode(true));
+                            
+                            $track.find('.track-item').attr({
+                                'data-id': track.id,
+                                'data-artist-id': artist.id
+                            });
+                            $track.find('img').attr({
+                                src: track.thumbnail,
+                                alt: track.title
+                            });
+                            $track.find('.track-title').text(track.title);
+                            $track.find('.track-artist').text(track.duration);
+                            
+                            $list.append($track);
+                        });
+                        
+                        $button.text('Скрыть');
+                    } else {
+                        // Оставляем только первые 10 треков
+                        $list.children().slice(10).remove();
+                        $button.text('Показать все');
+                    }
+                });
+
+                // Добавляем альбомы
+                const albumTemplate = document.getElementById('album-template');
+                const $albumsGrid = $content.find('#albums-grid');
+                
+                artist.albums.forEach(album => {
+                    const $album = $(albumTemplate.content.cloneNode(true));
+                    
+                    $album.find('img').attr({
+                        src: album.thumbnail,
+                        alt: album.title
+                    });
+                    $album.find('h3').text(album.title);
+                    $album.find('p').text(album.year);
+                    
+                    // Добавляем ссылку на страницу альбома
+                    $album.find('.group').attr('data-id', album.id).on('click', function() {
+                        window.location.href = `/albums/${album.id}`;
+                    });
+                    
+                    $albumsGrid.append($album);
+                });
+
+                // Добавляем синглы
+                const singleTemplate = document.getElementById('album-template');
+                const $singlesGrid = $content.find('#singles-grid');
+                
+                artist.singles.forEach(single => {
+                    const $single = $(singleTemplate.content.cloneNode(true));
+                    
+                    $single.find('img').attr({
+                        src: single.thumbnail,
+                        alt: single.title
+                    });
+                    $single.find('h3').text(single.title);
+                    $single.find('p').text(single.year);
+                    
+                    // Добавляем ссылку на страницу сингла
+                    $single.find('.group').attr('data-id', single.id).on('click', function() {
+                        window.location.href = `/singles/${single.id}`;
+                    });
+                    
+                    $singlesGrid.append($single);
+                });
+
+                // Добавляем видео
+                const videoTemplate = document.getElementById('video-template');
+                const $videosGrid = $content.find('#videos-grid');
+                
+                artist.videos.forEach(video => {
+                    const $video = $(videoTemplate.content.cloneNode(true));
+                    
+                    $video.find('img').attr({
+                        src: video.thumbnail,
+                        alt: video.title
+                    });
+                    $video.find('h3').text(video.title);
+                    $video.find('p').text(video.views);
+                    $video.find('.group').attr('data-id', video.id);
+                    
+                    $videosGrid.append($video);
+                });
+
+                // Добавляем похожих артистов
+                const relatedTemplate = document.getElementById('related-artist-template');
+                const $relatedGrid = $content.find('#related-grid');
+                
+                artist.related.forEach(related => {
+                    const $related = $(relatedTemplate.content.cloneNode(true));
+                    
+                    $related.find('img').attr({
+                        src: related.image,
+                        alt: related.name
+                    });
+                    $related.find('h3').text(related.name);
+                    $related.find('p').text(related.subscribers);
+                    $related.find('.group').attr('data-id', related.id);
+                    
+                    $relatedGrid.append($related);
+                });
+                
+                // Обновляем заголовок страницы
+                document.title = `${artist.name}`;
+                
+                // Заменяем загрузчик на контент
+                $('#artist-content').html($content);
+
+                // Инициализируем навигацию
+                initNavigation();
+
+                // Инициализируем обработчики событий после добавления контента
+                initFollowButtons(artistId, artist.name, artist.image);
+                updateFollowersCount(artistId);
+            })
+            .fail(function(error) {
+                console.error('Ошибка при загрузке информации об артисте:', error);
+                showError('Не удалось загрузить информацию об артисте');
+            });
+    }
+
+    // Инициализация навигации
+    function initNavigation() {
+        // Добавляем плавную анимацию при переключении
+        $('.nav-link').on('click', function() {
+            const section = $(this).data('section');
+            
+            // Анимируем переключение активной вкладки
+            $('.nav-link').removeClass('active').css('transition', 'all 0.3s ease');
+            $(this).addClass('active');
+            
+            // Плавно скрываем все секции
+            $('.section').fadeOut(200, function() {
+                // После скрытия показываем нужную секцию
+                $(`#${section}-section`).fadeIn(200);
+            });
+            
+            // Добавляем эффект при наведении
+            $(this).hover(
+                function() { $(this).css('transform', 'translateY(-2px)'); },
+                function() { $(this).css('transform', 'translateY(0)'); }
+            );
+        });
+    }
+
+    // Воспроизведение трека
+    $(document).on('click', '.track-item', function() {
+        const trackId = $(this).data('id');
+        if (trackId) {
+            playTrack(trackId);
+        }
+    });
+
+    // Воспроизведение видео
+    $(document).on('click', '#videos-grid .group', function() {
+        const videoId = $(this).data('id');
+        if (videoId) {
+            playTrack(videoId);
+        }
+    });
+
+    // Переход на страницу похожего артиста
+    $(document).on('click', '#related-grid .group', function() {
+        const artistId = $(this).data('id');
+        if (artistId) {
+            window.location.href = `/artists/${artistId}`;
+        }
+    });
+
+    // Инициализация обработчиков кнопок подписки
+    function initFollowButtons(artistId, artistName, artistImage) {
+        // Подписка на артиста
+        $('#follow-artist').off('click').on('click', function() {
+            console.log('Follow button clicked');
+            $.ajax({
+                url: '/api/user/followed-artists',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({
+                    artist_id: artistId,
+                    artist_name: artistName,
+                    image: artistImage
+                }),
+                success: function() {
+                    $('#follow-artist').addClass('hidden');
+                    $('#unfollow-artist').removeClass('hidden');
+                    // Обновляем количество подписчиков
+                    updateFollowersCount(artistId);
+                    showError('Вы подписались на исполнителя');
+                },
+                error: function(error) {
+                    console.error('Ошибка при подписке:', error);
+                    showError('Не удалось подписаться на исполнителя');
+                }
+            });
+        });
+
+        // Отписка от артиста
+        $('#unfollow-artist').off('click').on('click', function() {
+            console.log('Unfollow button clicked');
+            $.ajax({
+                url: `/api/user/followed-artists/${artistId}`,
+                method: 'DELETE',
+                success: function() {
+                    $('#unfollow-artist').addClass('hidden');
+                    $('#follow-artist').removeClass('hidden');
+                    // Обновляем количество подписчиков
+                    updateFollowersCount(artistId);
+                    showError('Вы отписались от исполнителя');
+                },
+                error: function(error) {
+                    console.error('Ошибка при отписке:', error);
+                    showError('Не удалось отписаться от исполнителя');
+                }
+            });
+        });
+    }
+
+    // Функция обновления количества подписчиков
+    function updateFollowersCount(artistId) {
+        $.ajax({
+            url: `/api/user/followed-artists/${artistId}/followers`,
+            method: 'GET',
+            success: function(response) {
+                $('.followers-count').text(response.followers_count);
+            },
+            error: function(error) {
+                console.error('Ошибка при получении количества подписчиков:', error);
+                showError('Не удалось обновить количество подписчиков');
+            }
+        });
+    }
+    // Проверка статуса подписки на артиста
+    function checkArtistFollowStatus(artistId) {
+        $.get('/api/user/followed-artists')
+            .done(function(response) {
+                const isFollowing = response.artists.some(artist => artist.artist_id === artistId);
+                if (isFollowing) {
+                    $('#follow-artist').addClass('hidden');
+                    $('#unfollow-artist').removeClass('hidden');
+                } else {
+                    $('#follow-artist').removeClass('hidden');
+                    $('#unfollow-artist').addClass('hidden');
+                }
+            })
+            .fail(function(error) {
+                console.error('Ошибка при проверке статуса подписки:', error);
+            });
+    }
+
+   
+    // Загружаем информацию об артисте при загрузке страницы
+    $(document).ready(function() {
+        loadArtist();
+    });
+</script>
+
+<style>
+.nav-link {
+    @apply px-4 py-2 text-spotify-gray hover:text-white transition-colors relative cursor-pointer;
+}
+
+.nav-link.active {
+    @apply text-white font-medium;
+}
+
+.nav-link.active::after {
+    content: '';
+    @apply absolute bottom-0 left-0 w-full h-0.5 bg-spotify-green transform scale-x-100 transition-transform duration-300;
+}
+
+.nav-link::after {
+    content: '';
+    @apply absolute bottom-0 left-0 w-full h-0.5 bg-spotify-green transform scale-x-0 transition-transform duration-300;
+}
+
+.nav-link:hover::after {
+    @apply scale-x-100;
+}
+</style>
+{% endblock %} 

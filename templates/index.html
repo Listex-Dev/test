@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+
+{% block title %}Главная{% endblock %}
+
+{% block content %}
+<header class="glass rounded-xl p-6 mb-8">
+    <h2 class="text-2xl font-bold">Добро пожаловать в ReMusic</h2>
+</header>
+
+<!-- Популярные треки -->
+<section class="mb-12">
+    <h3 class="text-xl font-bold mb-6 flex items-center gap-3">
+        <span class="w-1 h-6 bg-spotify-green rounded-full"></span>
+        Популярные треки
+    </h3>
+    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6" id="popular-tracks">
+        <!-- Треки будут добавлены через JavaScript -->
+    </div>
+</section>
+
+<!-- Новые релизы -->
+<section class="mb-12">
+    <h3 class="text-xl font-bold mb-6 flex items-center gap-3">
+        <span class="w-1 h-6 bg-spotify-green rounded-full"></span>
+        Новые релизы
+    </h3>
+    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6" id="new-releases">
+        <!-- Релизы будут добавлены через JavaScript -->
+    </div>
+</section>
+
+<!-- Пустое пространство для предотвращения прерывания плеера -->
+<div class="h-32"></div>
+
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    // Загрузка популярных треков
+    $.ajax({
+        url: '/api/popular',
+        method: 'GET',
+        success: function(data) {
+            const $popularTracks = $('#popular-tracks');
+            if (data && data.length > 0) {
+                const tracksHtml = data.map(track => `
+                    <div class="glass rounded-xl p-4 hover:bg-spotify-light/50 transition-all cursor-pointer track-item group" data-id="${track.id}">
+                        <div class="relative">
+                            <img src="${track.thumbnail}" alt="${track.title}" class="w-full aspect-square rounded-lg mb-4">
+                            <button class="absolute bottom-6 right-6 w-12 h-12 bg-spotify-green rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-lg hover:scale-110">
+                                <i class="fas fa-play text-black"></i>
+                            </button>
+                        </div>
+                        <div class="font-semibold track-title">${track.title}</div>
+                        <a href="/artists/${track.artistId}" class="text-spotify-gray text-sm track-artist hover:text-white transition-colors">${track.artist}</a>
+                    </div>
+                `).join('');
+                $popularTracks.html(tracksHtml);
+            } else {
+                $popularTracks.html(`
+                    <div class="glass rounded-xl p-8 text-center">
+                        <p class="text-spotify-gray">Не удалось загрузить популярные треки</p>
+                    </div>
+                `);
+            }
+        },
+        error: function(error) {
+            console.error('Ошибка загрузки популярных треков:', error);
+            $('#popular-tracks').html(`
+                <div class="glass rounded-xl p-8 text-center">
+                    <p class="text-spotify-gray">Произошла ошибка при загрузке популярных треков</p>
+                </div>
+            `);
+        }
+    });
+
+    // Загрузка новых релизов
+    $.ajax({
+        url: '/api/new-releases',
+        method: 'GET',
+        success: function(data) {
+            const $newReleases = $('#new-releases');
+            if (data && data.length > 0) {
+                const releasesHtml = data.map(track => `
+                    <div class="glass rounded-xl p-4 hover:bg-spotify-light/50 transition-all cursor-pointer track-item group" data-id="${track.id}">
+                        <div class="relative">
+                            <img src="${track.thumbnail}" alt="${track.title}" class="w-full aspect-square rounded-lg mb-4">
+                            <button class="absolute bottom-6 right-6 w-12 h-12 bg-spotify-green rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-lg hover:scale-110">
+                                <i class="fas fa-play text-black"></i>
+                            </button>
+                        </div>
+                        <div class="font-semibold track-title">${track.title}</div>
+                        <a href="/artists/${track.artistId}" class="text-spotify-gray text-sm track-artist hover:text-white transition-colors">${track.artist}</a>
+                    </div>
+                `).join('');
+                $newReleases.html(releasesHtml);
+            } else {
+                $newReleases.html(`
+                    <div class="glass rounded-xl p-8 text-center">
+                        <p class="text-spotify-gray">Не удалось загрузить новые релизы</p>
+                    </div>
+                `);
+            }
+        },
+        error: function(error) {
+            console.error('Ошибка загрузки новых релизов:', error);
+            $('#new-releases').html(`
+                <div class="glass rounded-xl p-8 text-center">
+                    <p class="text-spotify-gray">Произошла ошибка при загрузке новых релизов</p>
+                </div>
+            `);
+        }
+    });
+
+});
+</script>
+{% endblock %} 

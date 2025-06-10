@@ -1,0 +1,242 @@
+{% extends "base.html" %}
+
+{% block title %}Поиск{% endblock %}
+
+{% block content %}
+<header class="glass rounded-xl p-6 mb-8">
+    <h2 class="text-2xl font-bold">Поиск музыки</h2>
+</header>
+
+<!-- Поиск -->
+<div class="mb-8">
+    <input type="text" 
+           class="w-full px-6 py-4 rounded-xl glass text-white placeholder-spotify-gray focus:outline-none focus:ring-2 focus:ring-spotify-green transition-all" 
+           placeholder="Поиск музыки..." 
+           id="search-input" 
+           value="{{ query if query else '' }}">
+</div>
+
+<!-- Категории -->
+<div class="mb-8">
+    <div class="flex gap-4 overflow-x-auto pb-4">
+        <button class="category-btn active" data-category="all">
+            <i class="fas fa-music mr-2"></i>
+            Все
+        </button>
+        <button class="category-btn" data-category="tracks">
+            <i class="fas fa-play mr-2"></i>
+            Треки
+        </button>
+        <button class="category-btn" data-category="artists">
+            <i class="fas fa-user mr-2"></i>
+            Исполнители
+        </button>
+        <button class="category-btn" data-category="albums">
+            <i class="fas fa-compact-disc mr-2"></i>
+            Альбомы
+        </button>
+    </div>
+</div>
+
+<!-- Результаты поиска -->
+<div class="space-y-8" id="search-results">
+    <!-- Треки -->
+    <div class="category-section" id="tracks-section">
+        <h3 class="text-xl font-bold mb-4">Треки</h3>
+        <div class="space-y-4" id="tracks-list"></div>
+    </div>
+
+    <!-- Исполнители -->
+    <div class="category-section" id="artists-section">
+        <h3 class="text-xl font-bold mb-4">Исполнители</h3>
+        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6" id="artists-grid"></div>
+    </div>
+
+    <!-- Альбомы -->
+    <div class="category-section" id="albums-section">
+        <h3 class="text-xl font-bold mb-4">Альбомы</h3>
+        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6" id="albums-grid"></div>
+    </div>
+</div>
+
+<!-- Пустое пространство для предотвращения прерывания плеера -->
+<div class="h-32"></div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    const $searchInput = $('#search-input');
+    const $tracksList = $('#tracks-list');
+    const $artistsGrid = $('#artists-grid');
+    const $albumsGrid = $('#albums-grid');
+    let searchTimeout;
+    let currentCategory = 'all';
+
+    // Обработчик категорий
+    $('.category-btn').on('click', function() {
+        $('.category-btn').removeClass('active');
+        $(this).addClass('active');
+        currentCategory = $(this).data('category');
+        
+        // Показываем/скрываем секции
+        if (currentCategory === 'all') {
+            $('.category-section').show();
+        } else {
+            $('.category-section').hide();
+            $(`#${currentCategory}-section`).show();
+        }
+    });
+
+    // Функция поиска
+    function performSearch(query) {
+        if (query.length > 2) {
+            $.ajax({
+                url: '/api/search',
+                method: 'GET',
+                data: { q: query },
+                success: function(data) {
+                    // Обработка треков
+                    if (data.tracks && data.tracks.length > 0) {
+                        const tracksHtml = data.tracks.map(track => `
+                            <div class="glass rounded-xl p-4 hover:bg-spotify-light/50 transition-all cursor-pointer track-item group" data-id="${track.id}">
+                                <div class="flex items-center gap-4">
+                                    <div class="relative">
+                                        <img src="${track.thumbnail}" alt="${track.title}" class="w-12 h-12 rounded">
+                                        <button class="absolute inset-0 w-full h-full bg-black/50 rounded opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                            <i class="fas fa-play text-white"></i>
+                                        </button>
+                                    </div>
+                                    <div class="flex-1">
+                                        <div class="font-semibold track-title">${track.title}</div>
+                                        <a href="/artists/${track.artistId}" class="text-spotify-gray text-sm track-artist hover:text-white transition-colors">${track.artist}</a>
+                                    </div>
+                                    <div class="text-spotify-gray text-sm">${track.duration || ''}</div>
+                                </div>
+                            </div>
+                        `).join('');
+                        $tracksList.html(tracksHtml);
+                    } else {
+                        $tracksList.html(`
+                            <div class="glass rounded-xl p-8 text-center">
+                                <p class="text-spotify-gray">Треки не найдены</p>
+                            </div>
+                        `);
+                    }
+
+                    // Обработка исполнителей
+                    if (data.artists && data.artists.length > 0) {
+                        const artistsHtml = data.artists.map(artist => `
+                            <div class="group cursor-pointer" data-id="${artist.id}">
+                                <div class="relative aspect-square rounded-full overflow-hidden mb-4">
+                                    <img src="${artist.image}" alt="${artist.name}" class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105">
+                                    <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
+                                        <button class="w-12 h-12 rounded-full bg-spotify-green flex items-center justify-center transform scale-0 group-hover:scale-100 transition-transform duration-300">
+                                            <i class="fas fa-user"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <h3 class="font-semibold text-lg truncate">${artist.name}</h3>
+                                <p class="text-spotify-gray text-sm">Исполнитель</p>
+                            </div>
+                        `).join('');
+                        $artistsGrid.html(artistsHtml);
+                    } else {
+                        $artistsGrid.html(`
+                            <div class="glass rounded-xl p-8 text-center">
+                                <p class="text-spotify-gray">Исполнители не найдены</p>
+                            </div>
+                        `);
+                    }
+
+                    // Обработка альбомов
+                    if (data.albums && data.albums.length > 0) {
+                        const albumsHtml = data.albums.map(album => `
+                            <div class="group cursor-pointer" data-id="${album.id}">
+                                <div class="relative aspect-square rounded-lg overflow-hidden mb-4">
+                                    <img src="${album.thumbnail}" alt="${album.title}" class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105">
+                                    <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
+                                        <button class="w-12 h-12 rounded-full bg-spotify-green flex items-center justify-center transform scale-0 group-hover:scale-100 transition-transform duration-300">
+                                            <i class="fas fa-play"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <h3 class="font-semibold text-lg truncate">${album.title}</h3>
+                                <p class="text-spotify-gray text-sm">${album.artist}</p>
+                            </div>
+                        `).join('');
+                        $albumsGrid.html(albumsHtml);
+                    } else {
+                        $albumsGrid.html(`
+                            <div class="glass rounded-xl p-8 text-center">
+                                <p class="text-spotify-gray">Альбомы не найдены</p>
+                            </div>
+                        `);
+                    }
+                },
+                error: function(error) {
+                    console.error('Ошибка поиска:', error);
+                    $tracksList.html(`
+                        <div class="glass rounded-xl p-8 text-center">
+                            <p class="text-spotify-gray">Произошла ошибка при поиске</p>
+                        </div>
+                    `);
+                }
+            });
+        }
+    }
+
+    // Обработчик ввода
+    $searchInput.on('input', function() {
+        clearTimeout(searchTimeout);
+        const query = $(this).val().trim();
+        searchTimeout = setTimeout(() => performSearch(query), 300);
+    });
+
+    // Обработчики кликов
+    $(document).on('click', '.track-item', function() {
+        const trackId = $(this).data('id');
+        if (trackId) {
+            playTrack(trackId);
+        }
+    });
+
+    $(document).on('click', '#artists-grid .group', function() {
+        const artistId = $(this).data('id');
+        if (artistId) {
+            window.location.href = `/artists/${artistId}`;
+        }
+    });
+
+    $(document).on('click', '#albums-grid .group', function() {
+        const albumId = $(this).data('id');
+        if (albumId) {
+            window.location.href = `/albums/${albumId}`;
+        }
+    });
+
+    // Если есть начальный запрос, выполняем поиск
+    if ($searchInput.val().trim().length > 2) {
+        performSearch($searchInput.val().trim());
+    }
+});
+</script>
+
+<style>
+.category-btn {
+    @apply px-4 py-2 rounded-full text-spotify-gray hover:text-white transition-colors whitespace-nowrap;
+}
+
+.category-btn.active {
+    @apply bg-spotify-light text-white;
+}
+
+.category-section {
+    @apply hidden;
+}
+
+.category-section:first-child {
+    @apply block;
+}
+</style>
+{% endblock %} 

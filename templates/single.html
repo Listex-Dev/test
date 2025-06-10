@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+
+{% block title %}Сингл{% endblock %}
+
+{% block content %}
+<div class="space-y-8 pb-32" id="single-content">
+    <!-- Загрузчик -->
+    <div class="flex items-center justify-center h-96">
+        <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-spotify-green"></div>
+    </div>
+</div>
+
+<!-- Шаблон контента сингла -->
+<template id="single-template">
+    <div class="space-y-8">
+        <!-- Шапка сингла -->
+        <div class="relative h-96 rounded-xl overflow-hidden">
+            <!-- Фоновое изображение -->
+            <div class="absolute inset-0">
+                <img src="" alt="" class="w-full h-full object-cover blur-xl opacity-50">
+                <div class="absolute inset-0 bg-gradient-to-t from-spotify-black to-transparent"></div>
+            </div>
+            
+            <!-- Контент -->
+            <div class="relative h-full flex items-end p-8">
+                <div class="flex items-end gap-6">
+                    <!-- Обложка сингла -->
+                    <div class="w-48 h-48 rounded-lg overflow-hidden shadow-2xl">
+                        <img src="" alt="" class="w-full h-full object-cover">
+                    </div>
+                    
+                    <!-- Информация -->
+                    <div class="text-white">
+                        <h1 class="text-5xl font-bold mb-4"></h1>
+                        <a href="#" class="text-spotify-gray hover:underline mb-2 block"></a>
+                        <p class="text-spotify-gray text-sm"></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Список треков -->
+        <div class="space-y-4">
+            <h2 class="text-2xl font-bold">Треки</h2>
+            <div class="space-y-2" id="tracks-list"></div>
+        </div>
+    </div>
+</template>
+
+<!-- Шаблон трека -->
+<template id="track-template">
+    <div class="flex items-center gap-4 p-2 hover:bg-spotify-light/50 rounded-lg cursor-pointer group track-item" data-id="" data-artist-id="">
+        <img src="" alt="" class="w-12 h-12 rounded">
+        <div class="flex-1">
+            <div class="font-semibold track-title"></div>
+            <div class="text-spotify-gray text-sm track-artist"></div>
+        </div>
+        <button class="text-spotify-gray hover:text-white opacity-0 group-hover:opacity-100 transition-opacity">
+            <i class="fas fa-play"></i>
+        </button>
+    </div>
+</template>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Загрузка информации о сингле
+    function loadSingle() {
+        const singleId = window.location.pathname.split('/').pop();
+        
+        $.get(`/api/singles/${singleId}`)
+            .done(function(single) {
+                const template = document.getElementById('single-template');
+                const $content = $(template.content.cloneNode(true));
+                
+                // Заполняем информацию о сингле
+                $content.find('h1').text(single.title);
+                $content.find('a').attr('href', `/artists/${single.artist_id}`).text(single.artist);
+                $content.find('.text-spotify-gray.text-sm').text(single.year);
+                $content.find('img').attr({
+                    src: single.thumbnail,
+                    alt: single.title
+                });
+                
+                // Добавляем треки
+                const tracksTemplate = document.getElementById('track-template');
+                const $tracksList = $content.find('#tracks-list');
+                
+                single.tracks.forEach(track => {
+                    const $track = $(tracksTemplate.content.cloneNode(true));
+                    
+                    $track.find('.track-item').attr({
+                        'data-id': track.id,
+                        'data-artist-id': single.artist_id
+                    });
+                    $track.find('img').attr({
+                        src: track.thumbnail,
+                        alt: track.title
+                    });
+                    $track.find('.track-title').text(track.title);
+                    $track.find('.track-artist').text(track.duration);
+                    
+                    $tracksList.append($track);
+                });
+                
+                // Обновляем заголовок страницы
+                document.title = `${single.title} - ReMusic`;
+                
+                // Заменяем загрузчик на контент
+                $('#single-content').html($content);
+            })
+            .fail(function(error) {
+                console.error('Ошибка при загрузке информации о сингле:', error);
+                showError('Не удалось загрузить информацию о сингле');
+            });
+    }
+
+    // Воспроизведение трека
+    $(document).on('click', '.track-item', function() {
+        const trackId = $(this).data('id');
+        if (trackId) {
+            playTrack(trackId);
+        }
+    });
+
+    // Загружаем информацию о сингле при загрузке страницы
+    $(document).ready(function() {
+        loadSingle();
+    });
+</script>
+{% endblock %} 
