@@ -9,7 +9,6 @@ import { getInitials } from '@/lib/utils'
 export function Header() {
   const { user, isAuthenticated, logout } = useAuth()
   const [showUserMenu, setShowUserMenu] = useState(false)
-  const [showAuthButtons, setShowAuthButtons] = useState(false)
 
   const handleBack = () => {
     window.history.back()
@@ -20,13 +19,11 @@ export function Header() {
   }
 
   const handleLogin = () => {
-    setShowAuthButtons(true)
-    // Логика открытия модального окна входа будет в AuthModals
+    window.dispatchEvent(new CustomEvent('show-login'))
   }
 
   const handleRegister = () => {
-    setShowAuthButtons(true)
-    // Логика открытия модального окна регистрации будет в AuthModals
+    window.dispatchEvent(new CustomEvent('show-register'))
   }
 
   return (
